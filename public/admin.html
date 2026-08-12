@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Portal & Gate Scanner | Janmashtami Carnival 2026</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <style>
+    .admin-container {
+      max-width: 1100px;
+      margin: 2rem auto;
+      padding: 0 1.5rem;
+    }
+    .admin-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-lg);
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+    }
+    th, td {
+      padding: 10px 12px;
+      text-align: left;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      font-size: 0.9rem;
+    }
+    th {
+      color: var(--accent-gold-light);
+      background: rgba(4,29,32,0.8);
+    }
+    .action-btn {
+      padding: 5px 12px;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+      margin-right: 4px;
+    }
+    .action-btn.approve { background: var(--accent-teal); color: #000; }
+    .action-btn.reject { background: #ff4d6d; color: #fff; }
+    .login-box {
+      max-width: 420px;
+      margin: 4rem auto;
+      background: var(--bg-secondary);
+      border: 1px solid var(--accent-gold);
+      border-radius: var(--radius-lg);
+      padding: 2rem;
+      text-align: center;
+      box-shadow: 0 15px 40px rgba(0,0,0,0.6);
+    }
+  </style>
+</head>
+<body>
+
+  <header class="navbar">
+    <a href="index.html" class="nav-brand">
+      <span class="nav-logo-icon">🦚</span>
+      <span class="brand-title">Janmashtami Admin & Scanner</span>
+    </a>
+    <div>
+      <span id="adminSessionUser" style="color: var(--accent-gold-light); margin-right: 12px; font-weight: 600;"></span>
+      <a href="index.html" class="nav-btn">← Back to Portal</a>
+      <button class="nav-btn" id="logoutBtn" style="display: none;" onclick="adminLogout()">Logout</button>
+    </div>
+  </header>
+
+  <!-- Login Section (Shown if unauthenticated) -->
+  <div class="login-box" id="loginBox">
+    <h2 style="color: var(--accent-gold-light); margin-bottom: 4px;">🔒 Admin Sign In</h2>
+    <p style="color: var(--text-muted); margin-bottom: 1.5rem;">Enter credentials to access approvals & gate scanner.</p>
+
+    <form onsubmit="handleAdminLogin(event)">
+      <div class="form-group" style="margin-bottom: 12px; text-align: left;">
+        <label>Username</label>
+        <input type="text" class="form-input" id="adminUser" required placeholder="admin123">
+      </div>
+      <div class="form-group" style="margin-bottom: 1.5rem; text-align: left;">
+        <label>Password</label>
+        <input type="password" class="form-input" id="adminPass" required placeholder="••••••••">
+      </div>
+      <div id="loginErrorMsg" style="color: #ff4d6d; font-size: 0.9rem; margin-bottom: 1rem;"></div>
+      <button type="submit" class="cta-btn-lg gold" style="width: 100%; justify-content: center;">🔑 Login to Admin Panel</button>
+    </form>
+  </div>
+
+  <!-- Main Admin Dashboard Content (Hidden until authenticated) -->
+  <div class="admin-container" id="adminDashboardContent" style="display: none;">
+
+    <!-- Analytics & Headcount Summary Cards -->
+    <div class="admin-stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Total Registered</div>
+        <div class="stat-value" id="statTotalReg">0</div>
+        <div class="stat-sub">Registrants in system</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Confirmed Passes</div>
+        <div class="stat-value" id="statConfirmed" style="color: var(--accent-teal);">0</div>
+        <div class="stat-sub">Payment verified</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Pending Verification</div>
+        <div class="stat-value" id="statPending" style="color: var(--accent-amber);">0</div>
+        <div class="stat-sub">Requires admin action</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Gate Checked-In</div>
+        <div class="stat-value" id="statCheckedIn" style="color: #60a5fa;">0</div>
+        <div class="stat-sub" id="statCheckedInSub">0% of confirmed inside</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Total Revenue</div>
+        <div class="stat-value" id="statRevenue" style="color: var(--accent-gold-light);">₹0</div>
+        <div class="stat-sub">Approved pass payments</div>
+      </div>
+    </div>
+
+    <!-- Section 1: Gate Check-in QR Scanner -->
+    <div class="admin-card">
+      <h2 style="color: var(--accent-gold-light); margin-bottom: 6px;">🎟️ Dhyansthali Gate QR Check-in & Headcount</h2>
+      <p style="color: var(--text-muted); margin-bottom: 1rem;">Scan with camera, QR reader barcode device, or type registration code (JK2026-...).</p>
+
+      <div style="display: flex; gap: 10px; max-width: 650px; flex-wrap: wrap;">
+        <form onsubmit="handleGateFormSubmit(event)" style="display: flex; gap: 10px; flex: 1;">
+          <input type="text" class="form-input" id="gateScanInput" placeholder="Scan or Enter Reg Code (JK2026-...)" autofocus style="font-size: 1.1rem; font-weight: 700; letter-spacing: 1px;">
+          <button type="submit" class="cta-btn-lg gold" style="white-space: nowrap;">✓ Verify & Entry</button>
+        </form>
+        <button class="nav-btn" style="background: var(--accent-teal); color: #000; font-weight: 700; height: 46px;" onclick="toggleCameraScanner()">📷 Live Camera Scan</button>
+      </div>
+
+      <div id="cameraScannerContainer" style="display: none; max-width: 420px; margin-top: 1rem; background: rgba(0,0,0,0.6); border: 2px solid var(--accent-teal); border-radius: 12px; padding: 12px;">
+        <div id="qr-reader" style="width: 100%;"></div>
+      </div>
+
+      <div id="gateCheckinResult" style="margin-top: 1rem;"></div>
+    </div>
+
+    <!-- Section 2: Registration Approvals & Participant List -->
+    <div class="admin-card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h2 style="color: var(--accent-gold-light);">📋 Event Registrations & Payment Proofs</h2>
+        <button class="nav-btn" onclick="loadAdminDashboardData()">🔄 Refresh Dashboard</button>
+      </div>
+
+      <div style="overflow-x: auto;">
+        <table>
+          <thead>
+            <tr>
+              <th>Code</th>
+              <th>Name</th>
+              <th>Pass Tier</th>
+              <th>Mobile</th>
+              <th>City</th>
+              <th>Amount</th>
+              <th>Payment Mobile</th>
+              <th>12-Digit UTR Ref</th>
+              <th>Status</th>
+              <th>Gate Entry</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="adminRegTableBody">
+            <tr><td colspan="11">Loading registrations...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Admin Receipt Modal -->
+  <div class="modal-overlay" id="adminReceiptModal">
+    <div class="modal-container" style="max-width: 550px;">
+      <button class="modal-close" onclick="closeAdminModal('adminReceiptModal')">&times;</button>
+      <div id="adminReceiptModalContent"></div>
+    </div>
+  </div>
+
+  <script>
+    let adminToken = localStorage.getItem('adminAuthToken');
+
+    function checkAuthStatus() {
+      if (adminToken) {
+        document.getElementById('loginBox').style.display = 'none';
+        document.getElementById('adminDashboardContent').style.display = 'block';
+        document.getElementById('adminSessionUser').innerText = '👤 Signed in as admin123';
+        document.getElementById('logoutBtn').style.display = 'inline-block';
+        loadAdminDashboardData();
+
+        // Check if QR code was scanned via phone camera URL parameter
+        const urlParams = new URLSearchParams(window.location.search);
+        const scanCode = urlParams.get('scan');
+        if (scanCode) {
+          document.getElementById('gateScanInput').value = scanCode;
+          processGateCheckin();
+        }
+      } else {
+        document.getElementById('loginBox').style.display = 'block';
+        document.getElementById('adminDashboardContent').style.display = 'none';
+        document.getElementById('adminSessionUser').innerText = '';
+        document.getElementById('logoutBtn').style.display = 'none';
+      }
+    }
+
+    async function handleAdminLogin(event) {
+      event.preventDefault();
+      const user = document.getElementById('adminUser').value;
+      const pass = document.getElementById('adminPass').value;
+      const errEl = document.getElementById('loginErrorMsg');
+
+      errEl.innerText = '';
+
+      try {
+        const res = await fetch('/api/admin/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: user, password: pass })
+        });
+        const data = await res.json();
+
+        if (data.success && data.token) {
+          adminToken = data.token;
+          localStorage.setItem('adminAuthToken', data.token);
+          checkAuthStatus();
+        } else {
+          errEl.innerText = data.error || 'Invalid credentials';
+        }
+      } catch (err) {
+        errEl.innerText = 'Login server error.';
+      }
+    }
+
+    function adminLogout() {
+      adminToken = null;
+      localStorage.removeItem('adminAuthToken');
+      checkAuthStatus();
+    }
+
+    async function loadAdminDashboardData() {
+      loadAdminStats();
+      loadAdminRegistrations();
+    }
+
+    async function loadAdminStats() {
+      if (!adminToken) return;
+      try {
+        const res = await fetch('/api/admin/stats', {
+          headers: { 'Authorization': `Bearer ${adminToken}` }
+        });
+        const data = await res.json();
+        if (data.success && data.stats) {
+          const s = data.stats;
+          document.getElementById('statTotalReg').innerText = s.total;
+          document.getElementById('statConfirmed').innerText = s.confirmed;
+          document.getElementById('statPending').innerText = s.pending;
+          document.getElementById('statCheckedIn').innerText = `${s.checkedInTotal} / ${s.confirmed}`;
+          const pct = s.confirmed > 0 ? Math.round((s.checkedInTotal / s.confirmed) * 100) : 0;
+          document.getElementById('statCheckedInSub').innerText = `${pct}% of confirmed inside venue (${s.checkedInOneDay} Day / ${s.checkedInTwoDay} Resident)`;
+          document.getElementById('statRevenue').innerText = `₹${s.totalRevenue}`;
+        }
+      } catch (err) {
+        console.error('Error fetching admin stats:', err);
+      }
+    }
+
+    async function loadAdminRegistrations() {
+      if (!adminToken) return;
+      const tbody = document.getElementById('adminRegTableBody');
+      try {
+        const res = await fetch('/api/admin/registrations', {
+          headers: { 'Authorization': `Bearer ${adminToken}` }
+        });
+
+        if (res.status === 401) {
+          adminLogout();
+          return;
+        }
+
+        const data = await res.json();
+        if (data.success) {
+          tbody.innerHTML = data.registrations.map(r => {
+            const gateStatusPill = r.checked_in
+              ? `<span style="color:var(--accent-teal); font-weight:700; font-size:0.85rem;">✓ Inside (${r.checked_in_at})</span>`
+              : `<span style="color:var(--text-muted); font-size:0.85rem;">Not Checked In</span>`;
+
+            return `
+              <tr>
+                <td><strong>${r.reg_code}</strong></td>
+                <td>${r.primary_name}</td>
+                <td>${r.plan}</td>
+                <td>${r.mobile}</td>
+                <td>${r.city}</td>
+                <td>₹${r.amount}</td>
+                <td>${r.payment_mobile}</td>
+                <td><strong style="color: var(--accent-gold-light);">${r.utr_number}</strong></td>
+                <td><span class="status-pill ${r.status}">${r.status.toUpperCase()}</span></td>
+                <td>${gateStatusPill}</td>
+                <td>
+                  ${r.status === 'pending' ? `
+                    <button class="action-btn approve" onclick="updateRegStatus(${r.id}, 'confirmed')">Approve</button>
+                    <button class="action-btn reject" onclick="updateRegStatus(${r.id}, 'rejected')">Reject</button>
+                  ` : ''}
+                  ${r.status === 'confirmed' ? `
+                    <button class="action-btn" style="background:var(--accent-gold); color:#000;" onclick="viewPassReceipt('${r.reg_code}')">🖨️ Pass</button>
+                  ` : ''}
+                </td>
+              </tr>
+            `;
+          }).join('');
+        }
+      } catch (err) {
+        tbody.innerHTML = '<tr><td colspan="11" style="color:red;">Error loading registrations.</td></tr>';
+      }
+    }
+
+    async function updateRegStatus(id, status) {
+      await fetch('/api/admin/registration/status', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${adminToken}`
+        },
+        body: JSON.stringify({ id, status })
+      });
+      loadAdminDashboardData();
+    }
+
+    function handleGateFormSubmit(event) {
+      event.preventDefault();
+      processGateCheckin();
+    }
+
+    async function processGateCheckin() {
+      const inputEl = document.getElementById('gateScanInput');
+      const reg_code = inputEl.value;
+      const resContainer = document.getElementById('gateCheckinResult');
+      if (!reg_code) return;
+
+      resContainer.innerHTML = '<p>Verifying QR code...</p>';
+
+      try {
+        const res = await fetch('/api/admin/checkin', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${adminToken}`
+          },
+          body: JSON.stringify({ reg_code })
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          resContainer.innerHTML = `
+            <div style="background: rgba(20,184,166,0.25); border: 2px solid var(--accent-teal); padding: 1.2rem; border-radius: var(--radius-md); text-align: left;">
+              <h3 style="color: var(--accent-teal); display:flex; align-items:center; gap:8px;">✅ ENTRY APPROVED — WELCOME</h3>
+              <p style="font-size:1.1rem; margin-top:6px;"><strong>Attendee:</strong> ${data.registrant.primary_name}</p>
+              <p><strong>Pass Tier:</strong> ${data.registrant.plan} (Code: ${data.registrant.reg_code})</p>
+              <p><strong>Mobile / City:</strong> ${data.registrant.mobile} | ${data.registrant.city}</p>
+              <p style="font-size:0.85rem; color: var(--accent-gold-light); margin-top:4px;">${data.message}</p>
+            </div>
+          `;
+          inputEl.value = '';
+          inputEl.focus();
+          loadAdminDashboardData();
+        } else {
+          resContainer.innerHTML = `
+            <div style="background: rgba(255,77,109,0.25); border: 2px solid #ff4d6d; padding: 1.2rem; border-radius: var(--radius-md); text-align: left;">
+              <h3 style="color: #ff4d6d;">❌ ENTRY DENIED</h3>
+              <p style="font-size:1.05rem; margin-top:4px;">${data.message}</p>
+            </div>
+          `;
+          inputEl.select();
+        }
+      } catch (err) {
+        resContainer.innerHTML = '<p style="color:red;">Check-in service error.</p>';
+      }
+    }
+
+    async function viewPassReceipt(regCode) {
+      try {
+        const res = await fetch(`/api/receipt/${regCode}`);
+        const data = await res.json();
+        if (data.success && data.registration) {
+          const reg = data.registration;
+          const container = document.getElementById('adminReceiptModalContent');
+          container.innerHTML = `
+            <div class="receipt-pass-card" id="adminReceiptCard" style="margin: 0; text-align: left;">
+              <div class="receipt-header">
+                <div class="receipt-brand">
+                  <span>🦚</span> Shri Krishna Janmashtami 2026
+                </div>
+                <div class="receipt-code-badge">${reg.reg_code}</div>
+              </div>
+
+              <div class="receipt-body-grid">
+                <div class="receipt-info">
+                  <p><strong>Attendee Name:</strong> ${reg.primary_name}</p>
+                  <p><strong>Pass Tier:</strong> ${reg.plan}</p>
+                  <p><strong>Mobile:</strong> ${reg.mobile} | <strong>City:</strong> ${reg.city}</p>
+                  <p><strong>Payment Ref (UTR):</strong> ${reg.utr_number}</p>
+                  <p><strong>Status:</strong> <span style="color:#14b8a6; font-weight:700;">APPROVED / CONFIRMED</span></p>
+                  ${reg.checked_in ? `<p style="color:#059669; font-weight:700;">✓ Checked-In: ${reg.checked_in_at}</p>` : ''}
+                </div>
+
+                <div class="receipt-qr-box">
+                  <img src="/api/qr/${reg.reg_code}" alt="Pass QR Code">
+                  <p style="font-size:0.75rem; font-weight:700; margin-top:4px; color:#062c30;">SCAN AT GATE</p>
+                </div>
+              </div>
+
+              <div class="receipt-footer-notes">
+                <p>📍 Venue: Dhyansthali, Morbi • Dates: 4–5 September 2026</p>
+                <p style="margin-top:2px;">Official Event Entry Receipt Pass</p>
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 1rem;">
+              <button class="btn-print-receipt" onclick="downloadAdminPassPNG('${reg.reg_code}')">💾 Download Pass Image (PNG)</button>
+              <a href="receipt.html?code=${reg.reg_code}" target="_blank" class="btn-print-receipt" style="background: rgba(255,255,255,0.15); color: #fff; border: 1px solid var(--card-border); text-decoration: none;">🖨️ Open Full E-Receipt Page</a>
+            </div>
+          `;
+          document.getElementById('adminReceiptModal').classList.add('active');
+        }
+      } catch (err) {
+        alert('Failed to load pass receipt.');
+      }
+    }
+
+    function downloadAdminPassPNG(regCode) {
+      const card = document.getElementById('adminReceiptCard');
+      if (!card) return;
+      if (typeof html2canvas === 'undefined') {
+        window.open(`receipt.html?code=${regCode}`, '_blank');
+        return;
+      }
+
+      html2canvas(card, { scale: 2, useCORS: true }).then(canvas => {
+        const link = document.createElement('a');
+        link.download = `Janmashtami_Pass_${regCode}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      });
+    }
+
+    let html5QrScannerInstance = null;
+
+    function toggleCameraScanner() {
+      const container = document.getElementById('cameraScannerContainer');
+      if (container.style.display === 'none') {
+        container.style.display = 'block';
+        if (!html5QrScannerInstance) {
+          html5QrScannerInstance = new Html5Qrcode("qr-reader");
+        }
+        html5QrScannerInstance.start(
+          { facingMode: "environment" },
+          { fps: 10, qrbox: { width: 250, height: 250 } },
+          (decodedText, decodedResult) => {
+            document.getElementById('gateScanInput').value = decodedText;
+            processGateCheckin();
+          },
+          (errorMessage) => {}
+        ).catch(err => {
+          alert("Camera access required for live QR scanner.");
+        });
+      } else {
+        container.style.display = 'none';
+        if (html5QrScannerInstance) {
+          html5QrScannerInstance.stop().catch(()=>{});
+        }
+      }
+    }
+
+    function closeAdminModal(id) {
+      document.getElementById(id).classList.remove('active');
+    }
+
+    document.addEventListener('DOMContentLoaded', checkAuthStatus);
+  </script>
+</body>
+</html>
+

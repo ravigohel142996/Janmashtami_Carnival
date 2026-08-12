@@ -1,0 +1,18 @@
+# Janmashtami 2026 Event Registration & Verification System
+
+## Requirements
+1. **User Registration & Pass Selection**:
+   - Clean, dedicated registration portal for Shri Krishna Janmashtami Carnival (4–5 Sept 2026, Dhyansthali, Morbi).
+   - Pass selection: ₹100 One Day Pass vs. ₹500 Two Day Resident Pass.
+   - User details input: Full Name, Age, Gender, Mobile Number, City.
+   - UPI/GPay Payment QR display with GPay mobile number & 12-digit UTR transaction reference input.
+2. **Registration Status & QR Receipt Lookup**:
+   - Guests check status via Registration Code or Mobile Number.
+   - Status defaults to `PAYMENT PENDING` until admin verifies payment.
+   - Upon admin confirmation, renders official entry QR pass.
+3. **Password-Protected Admin Dashboard & Gate Scanner**:
+   - Secured admin login with credentials:
+     - **Username**: `admin123`
+     - **Password**: `JBS@811R`
+   - Features: Payment UTR verification (Approve/Reject), Gate QR Check-in scanner, and participant list management.
+4. **Simplified Scope**: Removed extra mini-games, card generator, and wish wall to focus solely on robust event registration & check-in.

@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Official Event Entry Pass Receipt | Shri Krishna Janmashtami 2026</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <style>
+    body {
+      background: #062c30;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .receipt-page-container {
+      max-width: 520px;
+      width: 100%;
+      text-align: center;
+    }
+    .action-bar {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      margin-top: 20px;
+      flex-wrap: wrap;
+    }
+    .btn-action {
+      background: linear-gradient(135deg, var(--accent-gold) 0%, #b89128 100%);
+      color: #062c30;
+      border: none;
+      font-weight: 700;
+      padding: 12px 24px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 1rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 4px 15px rgba(212, 175, 55, 0.4);
+      transition: transform 0.2s ease;
+    }
+    .btn-action:hover {
+      transform: translateY(-2px);
+    }
+    .btn-secondary {
+      background: rgba(255,255,255,0.1);
+      color: #fff;
+      border: 1px solid var(--card-border);
+    }
+    @media print {
+      body {
+        background: #ffffff !important;
+        padding: 0 !important;
+      }
+      .action-bar, .nav-back {
+        display: none !important;
+      }
+      .receipt-pass-card {
+        box-shadow: none !important;
+        border: 2px solid #000 !important;
+        margin: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="receipt-page-container">
+    <div class="nav-back" style="margin-bottom: 16px;">
+      <a href="index.html" style="color: var(--accent-gold-light); text-decoration: none; font-weight: 600;">← Return to Main Portal</a>
+    </div>
+
+    <div id="receiptCardContainer">
+      <p style="color: var(--text-muted);">Loading official pass receipt...</p>
+    </div>
+
+    <div class="action-bar" id="actionBar" style="display: none;">
+      <button class="btn-action" onclick="downloadPassAsPNG()">💾 Download Pass Image (PNG)</button>
+      <button class="btn-action btn-secondary" onclick="window.print()">🖨️ Print / Save as PDF</button>
+    </div>
+  </div>
+
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const passCode = urlParams.get('code');
+
+    async function loadReceipt() {
+      const container = document.getElementById('receiptCardContainer');
+      const actionBar = document.getElementById('actionBar');
+
+      if (!passCode) {
+        container.innerHTML = '<p style="color: #ff4d6d;">No pass registration code provided in URL.</p>';
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/receipt/${passCode}`);
+        const data = await res.json();
+
+        if (!data.success || !data.registration) {
+          container.innerHTML = `<p style="color: #ff4d6d;">Pass receipt not found for "${passCode}".</p>`;
+          return;
+        }
+
+        const reg = data.registration;
+        if (reg.status !== 'confirmed') {
+          container.innerHTML = `
+            <div style="background: rgba(255,159,28,0.15); border: 1px solid var(--accent-amber); padding: 2rem; border-radius: 16px;">
+              <h3 style="color: var(--accent-amber);">⏳ Payment Verification Pending</h3>
+              <p style="margin-top: 8px;">Pass Code: <strong>${reg.reg_code}</strong></p>
+              <p style="color: var(--text-muted); margin-top: 4px;">Your payment proof is currently under admin verification. Entry QR pass receipt will activate once confirmed.</p>
+            </div>
+          `;
+          return;
+        }
+
+        container.innerHTML = `
+          <div class="receipt-pass-card" id="printableReceiptPass" style="margin: 0 auto; text-align: left;">
+            <div class="receipt-header">
+              <div class="receipt-brand">
+                <span style="font-size: 1.6rem;">🦚</span> Shri Krishna Janmashtami 2026
+              </div>
+              <div class="receipt-code-badge">${reg.reg_code}</div>
+            </div>
+
+            <div class="receipt-body-grid">
+              <div class="receipt-info">
+                <p><strong>Attendee Name:</strong> ${reg.primary_name}</p>
+                <p><strong>Pass Tier:</strong> ${reg.plan}</p>
+                <p><strong>Mobile:</strong> ${reg.mobile} | <strong>City:</strong> ${reg.city}</p>
+                <p><strong>Payment Ref (UTR):</strong> ${reg.utr_number}</p>
+                <p><strong>Status:</strong> <span style="color: #14b8a6; font-weight: 700;">APPROVED / CONFIRMED</span></p>
+                ${reg.checked_in ? `<p style="color: #059669; font-weight: 700;">✓ Checked-In: ${reg.checked_in_at}</p>` : ''}
+              </div>
+
+              <div class="receipt-qr-box">
+                <img src="/api/qr/${reg.reg_code}" alt="Pass QR Code" style="width: 140px; height: 140px;">
+                <p style="font-size: 0.75rem; font-weight: 700; margin-top: 4px; color: #062c30;">SCAN AT GATE</p>
+              </div>
+            </div>
+
+            <div class="receipt-footer-notes">
+              <p>📍 Venue: Dhyansthali, Morbi • Dates: 4–5 September 2026</p>
+              <p style="margin-top: 2px;">Official Event Entry Receipt Pass. Show QR code at Morbi gate.</p>
+            </div>
+          </div>
+        `;
+
+        actionBar.style.display = 'flex';
+      } catch (err) {
+        container.innerHTML = '<p style="color: #ff4d6d;">Error loading receipt pass.</p>';
+      }
+    }
+
+    function downloadPassAsPNG() {
+      const card = document.getElementById('printableReceiptPass');
+      if (!card) return;
+
+      if (typeof html2canvas === 'undefined') {
+        window.print();
+        return;
+      }
+
+      html2canvas(card, { scale: 2, useCORS: true }).then(canvas => {
+        const link = document.createElement('a');
+        link.download = `Janmashtami_Pass_${passCode}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', loadReceipt);
+  </script>
+</body>
+</html>

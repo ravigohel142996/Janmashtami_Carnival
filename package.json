@@ -1,0 +1,23 @@
+{
+  "name": "janmashtami_2026",
+  "version": "1.0.0",
+  "description": "Shri Krishna Janmashtami Carnival 2026 - Event Registration & Gate Check-in System",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "body-parser": "^2.3.0",
+    "express": "^5.2.1",
+    "qrcode": "^1.5.4",
+    "sqlite3": "^6.0.1"
+  }
+}
