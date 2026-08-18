@@ -16,9 +16,26 @@ function closeModal(modalId) {
 
 function selectPlan(amount) {
   selectedPlan = amount;
-  document.getElementById('plan100').classList.toggle('selected', amount === '100');
-  document.getElementById('plan500').classList.toggle('selected', amount === '500');
-  document.getElementById('payAmountTxt').innerText = `₹${amount}`;
+  const p100 = document.getElementById('plan100');
+  const p500 = document.getElementById('plan500');
+  if (p100) p100.classList.toggle('selected', amount === '100');
+  if (p500) p500.classList.toggle('selected', amount === '500');
+  const payTxt = document.getElementById('payAmountTxt');
+  if (payTxt) payTxt.innerText = `₹${amount}`;
+}
+
+function selectPlanAndOpen(amount) {
+  selectPlan(amount);
+  openRegisterModal();
+}
+
+function copyUpiId() {
+  const upiText = document.getElementById('upiIdText')?.innerText || 'dhyansthali@upi';
+  navigator.clipboard.writeText(upiText).then(() => {
+    alert('✅ UPI ID copied to clipboard: ' + upiText);
+  }).catch(() => {
+    alert('UPI ID: ' + upiText);
+  });
 }
 
 async function handleRegistrationSubmit(event) {
