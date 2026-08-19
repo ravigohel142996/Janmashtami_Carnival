@@ -861,7 +861,7 @@ html, body {
   font-size: 1rem;
 }
 
-.qr-wrapper {
+.qr-wrapper, .payment-qr-container {
   background: #fff;
   padding: 8px;
   border-radius: var(--radius-md);
@@ -873,6 +873,13 @@ html, body {
   width: 150px;
   height: 150px;
   display: block;
+}
+
+.payment-qr-img {
+  width: 260px;
+  height: auto;
+  display: block;
+  border-radius: var(--radius-sm);
 }
 
 .upi-id-bar {

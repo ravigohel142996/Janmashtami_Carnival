@@ -30,7 +30,7 @@ function selectPlanAndOpen(amount) {
 }
 
 function copyUpiId() {
-  const upiText = document.getElementById('upiIdText')?.innerText || 'dhyansthali@upi';
+  const upiText = document.getElementById('upiIdText')?.innerText || '7600046176@ibl';
   navigator.clipboard.writeText(upiText).then(() => {
     alert('✅ UPI ID copied to clipboard: ' + upiText);
   }).catch(() => {
