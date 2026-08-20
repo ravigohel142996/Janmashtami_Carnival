@@ -254,8 +254,9 @@
               <input type="number" class="form-input" id="regAge" placeholder="e.g. 26">
             </div>
             <div class="form-group">
-              <label>Gender</label>
-              <select class="form-select" id="regGender">
+              <label>Gender *</label>
+              <select class="form-select" id="regGender" required>
+                <option value="" disabled selected>Select Gender</option>
                 <option value="Male">Male</option>
                 <option value="Female">Female</option>
                 <option value="Other">Other</option>
@@ -268,37 +269,43 @@
           </div>
         </div>
 
-        <!-- Step 3: Payment QR Code -->
+        <!-- Step 3: Payment QR Code + UPI Deep Link -->
         <div class="payment-box">
           <div class="pay-header">
             <span class="pay-title">Step 3: Pay via PhonePe / GPay / Paytm</span>
             <div class="pay-amount-badge">Total: <strong id="payAmountTxt">₹100</strong></div>
           </div>
-          
-          <div class="payment-qr-container">
-            <img src="payment_qr.png" alt="PhonePe QR Code" class="payment-qr-img">
+
+          <div class="payment-qr-container" onclick="openUpiApp()" style="cursor:pointer;" title="Tap to open UPI payment app">
+            <img src="payment_qr.png" alt="PhonePe / GPay QR Code — Tap to Pay" class="payment-qr-img">
           </div>
-          
-          <div class="upi-id-bar">
+
+          <button type="button" class="btn-upi-pay" id="btnUpiPay" onclick="openUpiApp()">
+            <span>💳</span>
+            <span>Pay Now / UPI से भुगतान करें</span>
+          </button>
+
+          <div class="upi-id-bar" style="margin-top:10px;">
             <span>UPI ID: <strong id="upiIdText">7600046176@ibl</strong></span>
             <button type="button" class="btn-copy-upi" onclick="copyUpiId()">📋 Copy</button>
           </div>
-          <p class="pay-note">Scan QR code using any UPI app and note the 12-digit UTR reference number.</p>
+          <p class="pay-note" style="margin-top:8px;">📱 Tap <strong>Pay Now</strong> to open your UPI app directly — or scan the QR above.<br>After paying, <strong>return to this page</strong> and enter your UTR reference below.</p>
         </div>
 
-        <!-- Step 4: UTR Reference Submission -->
+        <!-- Step 4: UTR Reference Submission (Optional) -->
         <div class="form-step-block">
           <label class="step-label">Step 4: Payment Verification Details</label>
           <div class="form-grid-2">
             <div class="form-group">
               <label>Payer Mobile Number *</label>
-              <input type="tel" class="form-input" id="payMobile" required placeholder="Number used to pay">
+              <input type="tel" class="form-input" id="payMobile" required placeholder="Number used for payment">
             </div>
             <div class="form-group">
-              <label>12-Digit UTR / Transaction Ref *</label>
-              <input type="text" class="form-input" id="payUtr" required placeholder="e.g. 423987654321">
+              <label>UTR / Transaction Ref (Optional)</label>
+              <input type="text" class="form-input" id="payUtr" placeholder="e.g. 423987654321" inputmode="numeric">
             </div>
           </div>
+          <p style="font-size:0.75rem; color:var(--text-muted); margin-top:6px; font-style:italic;">💡 Entering your UTR reference helps admin verify your payment faster, but it is not mandatory to register.</p>
         </div>
 
         <button type="submit" class="submit-btn-gold">

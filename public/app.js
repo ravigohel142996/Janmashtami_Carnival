@@ -2,6 +2,12 @@
 
 let selectedPlan = '100';
 
+// UPI Configuration
+const UPI_ID = '7600046176@ibl';
+const UPI_PAYEE_NAME = 'Janmashtami Carnival 2026';
+
+// ─── Modal Controls ──────────────────────────────────────────
+
 function openRegisterModal() {
   document.getElementById('registerModal').classList.add('active');
 }
@@ -13,6 +19,8 @@ function openLookupModal() {
 function closeModal(modalId) {
   document.getElementById(modalId).classList.remove('active');
 }
+
+// ─── Plan Selection ──────────────────────────────────────────
 
 function selectPlan(amount) {
   selectedPlan = amount;
@@ -29,28 +37,80 @@ function selectPlanAndOpen(amount) {
   openRegisterModal();
 }
 
+// ─── UPI / Payment ───────────────────────────────────────────
+
 function copyUpiId() {
-  const upiText = document.getElementById('upiIdText')?.innerText || '7600046176@ibl';
+  const upiText = document.getElementById('upiIdText')?.innerText || UPI_ID;
   navigator.clipboard.writeText(upiText).then(() => {
-    alert('✅ UPI ID copied to clipboard: ' + upiText);
+    showToast('✅ UPI ID copied: ' + upiText);
   }).catch(() => {
     alert('UPI ID: ' + upiText);
   });
 }
 
+/**
+ * Tries to open installed UPI app via deep link.
+ * Falls back gracefully — QR is always visible as backup.
+ * Does NOT claim this verifies payment.
+ */
+function openUpiApp() {
+  const amount = selectedPlan;
+  const note = encodeURIComponent('Janmashtami Carnival 2026 Pass');
+  const payeeName = encodeURIComponent(UPI_PAYEE_NAME);
+
+  const deepLink = `upi://pay?pa=${UPI_ID}&pn=${payeeName}&am=${amount}&cu=INR&tn=${note}`;
+
+  // Create a temporary anchor and click — works on Android/iOS UPI apps
+  const a = document.createElement('a');
+  a.href = deepLink;
+  a.style.display = 'none';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+
+  // Show a helper message after 1.5s (user has likely switched to UPI app)
+  setTimeout(() => {
+    const btn = document.getElementById('btnUpiPay');
+    if (btn) {
+      btn.innerHTML = '<span>↩️</span><span>Returned from UPI app? Enter UTR below</span>';
+      btn.style.background = 'rgba(20,184,166,0.25)';
+      btn.style.borderColor = 'var(--accent-teal)';
+      btn.style.color = 'var(--accent-teal)';
+      // Focus UTR field to guide user
+      const utrField = document.getElementById('payUtr');
+      if (utrField) utrField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, 1500);
+}
+
+// ─── Registration Submission ─────────────────────────────────
+
 async function handleRegistrationSubmit(event) {
   event.preventDefault();
 
+  const submitBtn = event.target.querySelector('button[type="submit"]');
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.innerText = '⏳ Submitting...';
+  }
+
+  const genderEl = document.getElementById('regGender');
+  if (!genderEl.value) {
+    genderEl.focus();
+    if (submitBtn) { submitBtn.disabled = false; submitBtn.innerText = '🚀 Complete Pass Registration'; }
+    return;
+  }
+
   const payload = {
     plan: selectedPlan === '100' ? '₹100 One Day' : '₹500 Two Day Resident',
-    primary_name: document.getElementById('regName').value,
-    mobile: document.getElementById('regMobile').value,
+    primary_name: document.getElementById('regName').value.trim(),
+    mobile: document.getElementById('regMobile').value.trim(),
     age: document.getElementById('regAge').value,
-    gender: document.getElementById('regGender').value,
-    city: document.getElementById('regCity').value,
-    amount: parseInt(selectedPlan),
-    payment_mobile: document.getElementById('payMobile').value,
-    utr_number: document.getElementById('payUtr').value
+    gender: genderEl.value,
+    city: document.getElementById('regCity').value.trim(),
+    payment_mobile: document.getElementById('payMobile').value.trim(),
+    utr_number: (document.getElementById('payUtr')?.value || '').trim()
+    // NOTE: amount is intentionally NOT sent — server computes it from plan
   };
 
   try {
@@ -61,84 +121,119 @@ async function handleRegistrationSubmit(event) {
     });
     const data = await res.json();
 
+    if (submitBtn) { submitBtn.disabled = false; submitBtn.innerText = '🚀 Complete Pass Registration'; }
+
     if (data.success) {
       closeModal('registerModal');
-      alert(`🎉 Registration Submitted Successfully!\n\nYour Registration Code: ${data.reg_code}\nStatus: Payment Verification Pending (Within 24 Hours)\n\nYou can check status anytime under "Check Registration".`);
-      
-      document.getElementById('lookupQueryInput').value = data.reg_code;
-      openLookupModal();
-      performRegistrationLookup();
+      showRegistrationSuccess(data.reg_code, data.amount, data.plan);
     } else {
-      alert('Error: ' + (data.error || 'Failed to submit registration'));
+      showToast('❌ ' + (data.error || 'Registration failed. Please try again.'), 'error');
     }
   } catch (err) {
-    alert('Server error. Please try again.');
+    if (submitBtn) { submitBtn.disabled = false; submitBtn.innerText = '🚀 Complete Pass Registration'; }
+    showToast('❌ Network error. Please check connection and try again.', 'error');
   }
 }
 
+/**
+ * Shows a styled success card after registration (replaces native alert).
+ */
+function showRegistrationSuccess(regCode, amount, plan) {
+  // Show the lookup modal with the success message first
+  const lookupInput = document.getElementById('lookupQueryInput');
+  if (lookupInput) lookupInput.value = regCode;
+
+  // Pre-populate result container with success card
+  const container = document.getElementById('lookupResultContainer');
+  if (container) {
+    container.innerHTML = `
+      <div style="background: rgba(20,184,166,0.15); border: 2px solid var(--accent-teal); border-radius: var(--radius-md); padding: 1.4rem; text-align: center;">
+        <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🎉</div>
+        <h3 style="color: var(--accent-teal); margin-bottom: 0.5rem;">Registration Submitted!</h3>
+        <p style="font-size: 1.1rem; margin-bottom: 0.4rem;">Your Registration Code:</p>
+        <div style="font-size: 1.8rem; font-weight: 900; color: var(--accent-gold-light); letter-spacing: 2px; background: rgba(0,0,0,0.3); padding: 0.5rem 1rem; border-radius: 8px; display: inline-block; margin: 0.4rem 0;">
+          ${regCode}
+        </div>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 0.8rem;">📋 Save this code! Use it to check your status and download your pass.</p>
+        <p style="color: var(--accent-amber); font-size: 0.85rem; margin-top: 0.4rem;">⏳ Status: <strong>Payment Pending Verification</strong> — Admin will confirm within 24 hours.</p>
+        <button class="submit-btn-gold" style="margin-top: 1rem; padding: 0.65rem 1.2rem; font-size: 0.9rem;" onclick="performRegistrationLookup()">
+          🔍 Check My Pass Status
+        </button>
+      </div>
+    `;
+  }
+
+  openLookupModal();
+}
+
+// ─── Pass Status Lookup ──────────────────────────────────────
+
 async function performRegistrationLookup() {
-  const query = document.getElementById('lookupQueryInput').value;
+  const query = document.getElementById('lookupQueryInput').value.trim();
   const container = document.getElementById('lookupResultContainer');
 
   if (!query) {
-    container.innerHTML = '<p style="color: var(--accent-amber);">Please enter Registration Code or Mobile Number.</p>';
+    container.innerHTML = '<p style="color: var(--accent-amber);">Please enter your Registration Code or Mobile Number.</p>';
     return;
   }
 
-  container.innerHTML = '<p style="color: var(--text-muted);">Searching database...</p>';
+  container.innerHTML = '<p style="color: var(--text-muted);">🔍 Searching database...</p>';
 
   try {
     const res = await fetch(`/api/registration/lookup?query=${encodeURIComponent(query)}`);
     const data = await res.json();
 
     if (!data.success || !data.registrations || data.registrations.length === 0) {
-      container.innerHTML = `<p style="color: var(--accent-amber);">No registration found for "${query}".</p>`;
+      container.innerHTML = `<p style="color: var(--accent-amber);">No registration found for "<strong>${escapeHtml(query)}</strong>".</p>`;
       return;
     }
 
     let html = '';
     data.registrations.forEach(reg => {
       const isConfirmed = reg.status === 'confirmed';
+      const isRejected = reg.status === 'rejected';
       const statusPill = isConfirmed
         ? '<span class="status-pill confirmed">✓ CONFIRMED</span>'
-        : (reg.status === 'rejected' ? '<span class="status-pill rejected" style="background:rgba(255,77,109,0.2); color:#ff4d6d; border:1px solid #ff4d6d;">❌ REJECTED</span>' : '<span class="status-pill pending">⏳ PAYMENT PENDING</span>');
+        : (isRejected
+          ? '<span class="status-pill rejected">❌ REJECTED</span>'
+          : '<span class="status-pill pending">⏳ PAYMENT PENDING</span>');
 
       html += `
         <div style="background: rgba(4,29,32,0.85); border: 1px solid var(--accent-gold); border-radius: var(--radius-md); padding: 1.2rem; margin-bottom: 1rem; text-align: left;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem;">
-            <h4 style="color: var(--accent-gold-light); font-size: 1.1rem;">Pass Code: ${reg.reg_code}</h4>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem; flex-wrap: wrap; gap: 8px;">
+            <h4 style="color: var(--accent-gold-light); font-size: 1.1rem;">Pass: ${escapeHtml(reg.reg_code)}</h4>
             ${statusPill}
           </div>
 
           ${isConfirmed ? `
-            <!-- Printable E-Receipt Pass Card -->
+            <!-- Confirmed: Show full E-Receipt Pass Card -->
             <div class="receipt-pass-card" id="receiptCard_${reg.reg_code}">
               <div class="receipt-header">
                 <div class="receipt-brand">
                   <span>🦚</span> Shri Krishna Janmashtami 2026
                 </div>
-                <div class="receipt-code-badge">${reg.reg_code}</div>
+                <div class="receipt-code-badge">${escapeHtml(reg.reg_code)}</div>
               </div>
 
               <div class="receipt-body-grid">
                 <div class="receipt-info">
-                  <p><strong>Attendee Name:</strong> ${reg.primary_name}</p>
-                  <p><strong>Pass Tier:</strong> ${reg.plan}</p>
-                  <p><strong>Mobile:</strong> ${reg.mobile} | <strong>City:</strong> ${reg.city}</p>
-                  <p><strong>Payment Ref (UTR):</strong> ${reg.utr_number}</p>
+                  <p><strong>Name:</strong> ${escapeHtml(reg.primary_name)}</p>
+                  <p><strong>Pass Tier:</strong> ${escapeHtml(reg.plan)} (₹${reg.amount})</p>
+                  <p><strong>Mobile:</strong> ${escapeHtml(reg.mobile)} | <strong>City:</strong> ${escapeHtml(reg.city)}</p>
+                  ${reg.utr_number ? `<p><strong>UTR Ref:</strong> ${escapeHtml(reg.utr_number)}</p>` : ''}
                   <p><strong>Status:</strong> <span style="color:#14b8a6; font-weight:700;">APPROVED / CONFIRMED</span></p>
-                  ${reg.checked_in ? `<p style="color:#059669; font-weight:700;">✓ Checked-In: ${reg.checked_in_at}</p>` : ''}
+                  ${reg.checked_in ? `<p style="color:#059669; font-weight:700;">✓ Checked-In: ${escapeHtml(reg.checked_in_at)}</p>` : ''}
                 </div>
 
                 <div class="receipt-qr-box">
-                  <img src="/api/qr/${reg.reg_code}" alt="Pass QR Code">
+                  <img src="/api/qr/${reg.reg_code}" alt="Pass QR Code" loading="lazy">
                   <p style="font-size:0.75rem; font-weight:700; margin-top:4px; color:#062c30;">SCAN AT GATE</p>
                 </div>
               </div>
 
               <div class="receipt-footer-notes">
                 <p>📍 Venue: Dhyansthali, Morbi • Dates: 4–5 September 2026</p>
-                <p style="margin-top:2px;">Present this receipt with QR code at entry gate for verification.</p>
+                <p style="margin-top:2px;">Present this pass with QR code at gate for entry verification.</p>
               </div>
             </div>
 
@@ -151,13 +246,16 @@ async function performRegistrationLookup() {
               </a>
             </div>
           ` : `
+            <!-- Pending / Rejected: show summary without QR -->
             <div style="padding: 1rem; background: rgba(0,0,0,0.2); border-radius: 8px;">
-              <p><strong>Primary Name:</strong> ${reg.primary_name}</p>
-              <p><strong>Pass Tier:</strong> ${reg.plan}</p>
-              <p><strong>Mobile:</strong> ${reg.mobile} | <strong>City:</strong> ${reg.city}</p>
-              <p><strong>12-Digit UTR Ref:</strong> ${reg.utr_number}</p>
+              <p><strong>Name:</strong> ${escapeHtml(reg.primary_name)}</p>
+              <p><strong>Pass Tier:</strong> ${escapeHtml(reg.plan)}</p>
+              <p><strong>Mobile:</strong> ${escapeHtml(reg.mobile)} | <strong>City:</strong> ${escapeHtml(reg.city)}</p>
+              ${reg.utr_number ? `<p><strong>UTR Ref:</strong> ${escapeHtml(reg.utr_number)}</p>` : ''}
               <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 8px; font-style: italic;">
-                Note: Your payment proof is under verification by admin. Unique Entry QR Receipt will activate as soon as status is marked CONFIRMED.
+                ${isRejected
+                  ? '❌ Your registration was rejected. Please contact the event organisers.'
+                  : '⏳ Your payment is under verification. Entry QR pass will appear here once confirmed by admin (usually within 24 hours).'}
               </p>
             </div>
           `}
@@ -167,9 +265,11 @@ async function performRegistrationLookup() {
 
     container.innerHTML = html;
   } catch (err) {
-    container.innerHTML = '<p style="color: red;">Error retrieving pass status.</p>';
+    container.innerHTML = '<p style="color: red;">Error retrieving pass status. Please try again.</p>';
   }
 }
+
+// ─── Pass Download ───────────────────────────────────────────
 
 function downloadPassAsPNG(regCode) {
   const card = document.getElementById(`receiptCard_${regCode}`);
@@ -188,4 +288,36 @@ function downloadPassAsPNG(regCode) {
   });
 }
 
+// ─── Utilities ───────────────────────────────────────────────
 
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+let toastTimer = null;
+function showToast(message, type = 'info') {
+  let toast = document.getElementById('globalToast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'globalToast';
+    toast.style.cssText = `
+      position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%);
+      background: rgba(4,26,28,0.97); border: 1px solid var(--accent-gold);
+      color: #fff; padding: 12px 20px; border-radius: 10px; z-index: 9999;
+      font-size: 0.9rem; font-weight: 600; max-width: 90vw; text-align: center;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.5); transition: opacity 0.3s;
+    `;
+    document.body.appendChild(toast);
+  }
+  if (type === 'error') toast.style.borderColor = '#ff4d6d';
+  else toast.style.borderColor = 'var(--accent-gold)';
+  toast.innerText = message;
+  toast.style.opacity = '1';
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { toast.style.opacity = '0'; }, 3500);
+}

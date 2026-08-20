@@ -16,6 +16,7 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@libsql/client": "^0.17.4",
     "body-parser": "^2.3.0",
     "express": "^5.2.1",
     "qrcode": "^1.5.4",

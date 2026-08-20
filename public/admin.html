@@ -388,7 +388,7 @@
   <!-- Login Section (Shown if unauthenticated) -->
   <div class="login-box" id="loginBox">
     <h2 style="color: var(--accent-gold-light); margin-bottom: 4px;">🔒 Admin Sign In</h2>
-    <p style="color: var(--text-muted); margin-bottom: 1.5rem;">Enter credentials to access approvals & gate scanner.</p>
+    <p style="color: var(--text-muted); margin-bottom: 1.5rem;">Enter credentials to access the admin panel or gate scanner.</p>
 
     <form onsubmit="handleAdminLogin(event)">
       <div class="form-group" style="margin-bottom: 12px; text-align: left;">
@@ -408,7 +408,7 @@
   <div class="admin-container" id="adminDashboardContent" style="display: none;">
 
     <!-- Analytics & Headcount Summary Cards -->
-    <div class="admin-stats-grid">
+    <div class="admin-stats-grid" id="adminStatsGrid">
       <div class="stat-card">
         <div class="stat-label">Total Registered</div>
         <div class="stat-value" id="statTotalReg">0</div>
@@ -419,7 +419,7 @@
         <div class="stat-value" id="statConfirmed" style="color: var(--accent-teal);">0</div>
         <div class="stat-sub">Payment verified</div>
       </div>
-      <div class="stat-card">
+      <div class="stat-card" id="statPendingCard">
         <div class="stat-label">Pending Verification</div>
         <div class="stat-value" id="statPending" style="color: var(--accent-amber);">0</div>
         <div class="stat-sub">Requires admin action</div>
@@ -429,7 +429,7 @@
         <div class="stat-value" id="statCheckedIn" style="color: #60a5fa;">0</div>
         <div class="stat-sub" id="statCheckedInSub">0% of confirmed inside</div>
       </div>
-      <div class="stat-card">
+      <div class="stat-card" id="statRevenueCard">
         <div class="stat-label">Total Revenue</div>
         <div class="stat-value" id="statRevenue" style="color: var(--accent-gold-light);">₹0</div>
         <div class="stat-sub">Approved pass payments</div>
@@ -437,7 +437,7 @@
     </div>
 
     <!-- Section 1: Gate Check-in QR Scanner -->
-    <div class="admin-card">
+    <div class="admin-card" id="adminScannerSection">
       <h2 style="color: var(--accent-gold-light); margin-bottom: 6px;">🎟️ Dhyansthali Gate QR Check-in & Headcount</h2>
       <p style="color: var(--text-muted); margin-bottom: 1rem;">Scan with camera, QR reader barcode device, or type registration code (JK2026-...).</p>
 
@@ -457,10 +457,10 @@
     </div>
 
     <!-- Section 2: Registration Approvals & Participant List -->
-    <div class="admin-card">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+    <div class="admin-card" id="adminApprovalsSection">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 10px;">
         <h2 style="color: var(--accent-gold-light);">📋 Event Registrations & Payment Proofs</h2>
-        <button class="nav-btn" onclick="loadAdminDashboardData()">🔄 Refresh Dashboard</button>
+        <button class="nav-btn" onclick="loadAdminDashboardData()">🔄 Refresh</button>
       </div>
 
       <div class="table-container">
@@ -469,19 +469,20 @@
             <tr>
               <th>Code</th>
               <th>Name</th>
+              <th>Gender</th>
               <th>Pass Tier</th>
               <th>Mobile</th>
               <th>City</th>
               <th>Amount</th>
               <th>Payment Mobile</th>
-              <th>12-Digit UTR Ref</th>
+              <th>UTR Ref</th>
               <th>Status</th>
               <th>Gate Entry</th>
               <th>Action</th>
             </tr>
           </thead>
           <tbody id="adminRegTableBody">
-            <tr><td colspan="11">Loading registrations...</td></tr>
+            <tr><td colspan="12">Loading registrations...</td></tr>
           </tbody>
         </table>
       </div>
@@ -499,40 +500,72 @@
 
   <script>
     let adminToken = localStorage.getItem('adminAuthToken');
+    let adminRole  = localStorage.getItem('adminRole') || 'admin';
+    let autoRefreshTimer = null;
 
     function checkAuthStatus() {
       if (adminToken) {
         document.getElementById('loginBox').style.display = 'none';
         document.getElementById('adminDashboardContent').style.display = 'block';
-        document.getElementById('adminSessionUser').innerText = '👤 Signed in as admin123';
         document.getElementById('logoutBtn').style.display = 'inline-block';
+
+        applyRoleUI();
         loadAdminDashboardData();
 
-        // Check if QR code was scanned via phone camera URL parameter
+        // Auto-refresh every 45s
+        if (!autoRefreshTimer) {
+          autoRefreshTimer = setInterval(loadAdminDashboardData, 45000);
+        }
+
+        // Handle QR scan from phone camera URL parameter (?scan=JK2026-...)
         const urlParams = new URLSearchParams(window.location.search);
         const scanCode = urlParams.get('scan');
         if (scanCode) {
           document.getElementById('gateScanInput').value = scanCode;
           processGateCheckin();
+          window.history.replaceState({}, '', window.location.pathname);
         }
       } else {
         document.getElementById('loginBox').style.display = 'block';
         document.getElementById('adminDashboardContent').style.display = 'none';
         document.getElementById('adminSessionUser').innerText = '';
         document.getElementById('logoutBtn').style.display = 'none';
+        if (autoRefreshTimer) { clearInterval(autoRefreshTimer); autoRefreshTimer = null; }
       }
     }
 
+    function applyRoleUI() {
+      const pendingCard  = document.getElementById('statPendingCard');
+      const revenueCard  = document.getElementById('statRevenueCard');
+      const approvalsSection = document.getElementById('adminApprovalsSection');
+      const sessionLabel = document.getElementById('adminSessionUser');
+
+      if (adminRole === 'gate') {
+        sessionLabel.innerText = '🔑 Gate Staff (gate123)';
+        if (pendingCard)  pendingCard.style.display  = 'none';
+        if (revenueCard)  revenueCard.style.display  = 'none';
+        if (approvalsSection) approvalsSection.style.display = 'none';
+      } else {
+        sessionLabel.innerText = '👤 Admin (admin123)';
+        if (pendingCard)  pendingCard.style.display  = '';
+        if (revenueCard)  revenueCard.style.display  = '';
+        if (approvalsSection) approvalsSection.style.display = '';
+      }
+    }
+
+    // ── Login ────────────────────────────────────────────────────────
     async function handleAdminLogin(event) {
       event.preventDefault();
-      const user = document.getElementById('adminUser').value;
-      const pass = document.getElementById('adminPass').value;
+      const user  = document.getElementById('adminUser').value.trim();
+      const pass  = document.getElementById('adminPass').value;
       const errEl = document.getElementById('loginErrorMsg');
+      const btn   = event.target.querySelector('button[type="submit"]');
 
       errEl.innerText = '';
+      if (btn) { btn.disabled = true; btn.innerText = 'Signing in...'; }
 
       try {
-        const res = await fetch('/api/admin/login', {
+        const res  = await fetch('/api/admin/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username: user, password: pass })
@@ -541,101 +574,128 @@
 
         if (data.success && data.token) {
           adminToken = data.token;
-          localStorage.setItem('adminAuthToken', data.token);
+          adminRole  = data.role || 'admin';
+          localStorage.setItem('adminAuthToken', adminToken);
+          localStorage.setItem('adminRole', adminRole);
           checkAuthStatus();
         } else {
-          errEl.innerText = data.error || 'Invalid credentials';
+          errEl.innerText = data.error || 'Invalid credentials.';
         }
       } catch (err) {
-        errEl.innerText = 'Login server error.';
+        errEl.innerText = 'Login server error. Please try again.';
+      } finally {
+        if (btn) { btn.disabled = false; btn.innerText = '🔑 Login to Admin Panel'; }
       }
     }
 
     function adminLogout() {
       adminToken = null;
+      adminRole  = 'admin';
       localStorage.removeItem('adminAuthToken');
+      localStorage.removeItem('adminRole');
+      if (autoRefreshTimer) { clearInterval(autoRefreshTimer); autoRefreshTimer = null; }
       checkAuthStatus();
     }
 
+    // ── Dashboard Data ───────────────────────────────────────────────
     async function loadAdminDashboardData() {
-      loadAdminStats();
-      loadAdminRegistrations();
+      await loadAdminStats();
+      if (adminRole === 'admin') {
+        await loadAdminRegistrations();
+      }
     }
 
     async function loadAdminStats() {
       if (!adminToken) return;
       try {
-        const res = await fetch('/api/admin/stats', {
+        const res  = await fetch('/api/admin/stats', {
           headers: { 'Authorization': `Bearer ${adminToken}` }
         });
+        if (res.status === 401) { adminLogout(); return; }
         const data = await res.json();
         if (data.success && data.stats) {
           const s = data.stats;
-          document.getElementById('statTotalReg').innerText = s.total;
+          document.getElementById('statTotalReg').innerText  = s.total;
           document.getElementById('statConfirmed').innerText = s.confirmed;
-          document.getElementById('statPending').innerText = s.pending;
+          if (s.pending !== undefined) {
+            const pendingEl = document.getElementById('statPending');
+            if (pendingEl) pendingEl.innerText = s.pending;
+          }
           document.getElementById('statCheckedIn').innerText = `${s.checkedInTotal} / ${s.confirmed}`;
           const pct = s.confirmed > 0 ? Math.round((s.checkedInTotal / s.confirmed) * 100) : 0;
-          document.getElementById('statCheckedInSub').innerText = `${pct}% of confirmed inside venue (${s.checkedInOneDay} Day / ${s.checkedInTwoDay} Resident)`;
-          document.getElementById('statRevenue').innerText = `₹${s.totalRevenue}`;
+          document.getElementById('statCheckedInSub').innerText =
+            `${pct}% inside • ${s.checkedInOneDay} Day + ${s.checkedInTwoDay} Resident`;
+          if (s.totalRevenue !== undefined) {
+            const revEl = document.getElementById('statRevenue');
+            if (revEl) revEl.innerText = `₹${s.totalRevenue}`;
+          }
         }
       } catch (err) {
-        console.error('Error fetching admin stats:', err);
+        console.error('Stats fetch error:', err);
       }
     }
 
     async function loadAdminRegistrations() {
-      if (!adminToken) return;
+      if (!adminToken || adminRole !== 'admin') return;
       const tbody = document.getElementById('adminRegTableBody');
       try {
         const res = await fetch('/api/admin/registrations', {
           headers: { 'Authorization': `Bearer ${adminToken}` }
         });
 
-        if (res.status === 401) {
-          adminLogout();
+        if (res.status === 401) { adminLogout(); return; }
+
+        const data = await res.json();
+        if (!data.success) { tbody.innerHTML = '<tr><td colspan="12" style="color:red;">Failed to load registrations.</td></tr>'; return; }
+
+        if (!data.registrations || data.registrations.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="12" style="color:var(--text-muted); text-align:center;">No registrations yet.</td></tr>';
           return;
         }
 
-        const data = await res.json();
-        if (data.success) {
-          tbody.innerHTML = data.registrations.map(r => {
-            const gateStatusPill = r.checked_in
-              ? `<span style="color:var(--accent-teal); font-weight:700; font-size:0.85rem;">✓ Inside (${r.checked_in_at})</span>`
-              : `<span style="color:var(--text-muted); font-size:0.85rem;">Not Checked In</span>`;
+        tbody.innerHTML = data.registrations.map(r => {
+          const esc = (v) => String(v || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+          const gateStatusPill = r.checked_in
+            ? `<span style="color:var(--accent-teal); font-weight:700; font-size:0.82rem;">✓ In (${esc(r.checked_in_at)})</span>`
+            : `<span style="color:var(--text-muted); font-size:0.82rem;">Not In</span>`;
 
-            return `
-              <tr>
-                <td data-label="Code"><strong>${r.reg_code}</strong></td>
-                <td data-label="Name">${r.primary_name}</td>
-                <td data-label="Pass Tier">${r.plan}</td>
-                <td data-label="Mobile">${r.mobile}</td>
-                <td data-label="City">${r.city}</td>
-                <td data-label="Amount">₹${r.amount}</td>
-                <td data-label="Payment Mobile">${r.payment_mobile}</td>
-                <td data-label="UTR Ref"><strong style="color: var(--accent-gold-light);">${r.utr_number}</strong></td>
-                <td data-label="Status"><span class="status-pill ${r.status}">${r.status.toUpperCase()}</span></td>
-                <td data-label="Gate Entry">${gateStatusPill}</td>
-                <td data-label="Action">
-                  ${r.status === 'pending' ? `
-                    <button class="action-btn approve" onclick="updateRegStatus(${r.id}, 'confirmed')">Approve</button>
-                    <button class="action-btn reject" onclick="updateRegStatus(${r.id}, 'rejected')">Reject</button>
-                  ` : ''}
-                  ${r.status === 'confirmed' ? `
-                    <button class="action-btn pass" onclick="viewPassReceipt('${r.reg_code}')">🖨️ Pass</button>
-                  ` : ''}
-                </td>
-              </tr>
-            `;
-          }).join('');
-        }
+          const statusClass = r.status === 'confirmed' ? 'confirmed' : r.status === 'rejected' ? 'rejected' : 'pending';
+
+          return `
+            <tr>
+              <td data-label="Code"><strong>${esc(r.reg_code)}</strong></td>
+              <td data-label="Name">${esc(r.primary_name)}</td>
+              <td data-label="Gender">${esc(r.gender)}</td>
+              <td data-label="Pass Tier">${esc(r.plan)}</td>
+              <td data-label="Mobile">${esc(r.mobile)}</td>
+              <td data-label="City">${esc(r.city)}</td>
+              <td data-label="Amount">₹${r.amount}</td>
+              <td data-label="Payment Mobile">${esc(r.payment_mobile)}</td>
+              <td data-label="UTR Ref"><strong style="color: var(--accent-gold-light);">${r.utr_number ? esc(r.utr_number) : '<span style="color:var(--text-muted);font-style:italic;">—</span>'}</strong></td>
+              <td data-label="Status"><span class="status-pill ${statusClass}">${r.status.toUpperCase()}</span></td>
+              <td data-label="Gate Entry">${gateStatusPill}</td>
+              <td data-label="Action">
+                ${r.status === 'pending' ? `
+                  <button class="action-btn approve" onclick="updateRegStatus(${r.id}, 'confirmed')">✓ Approve</button>
+                  <button class="action-btn reject" onclick="updateRegStatus(${r.id}, 'rejected')">✗ Reject</button>
+                ` : ''}
+                ${r.status === 'confirmed' ? `
+                  <button class="action-btn pass" onclick="viewPassReceipt('${esc(r.reg_code)}')">🖨️ Pass</button>
+                ` : ''}
+                ${r.status === 'rejected' ? `
+                  <button class="action-btn" style="background:rgba(255,159,28,0.2); color:var(--accent-amber); border:1px solid var(--accent-amber);" onclick="updateRegStatus(${r.id}, 'pending')">↩ Reset</button>
+                ` : ''}
+              </td>
+            </tr>
+          `;
+        }).join('');
       } catch (err) {
-        tbody.innerHTML = '<tr><td colspan="11" style="color:red;">Error loading registrations.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="12" style="color:red;">Error loading registrations.</td></tr>';
       }
     }
 
     async function updateRegStatus(id, status) {
-      await fetch('/api/admin/registration/status', {
+      const res = await fetch('/api/admin/registration/status', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -643,9 +703,11 @@
         },
         body: JSON.stringify({ id, status })
       });
+      if (res.status === 401) { adminLogout(); return; }
       loadAdminDashboardData();
     }
 
+    // ── Gate Check-in ────────────────────────────────────────────────
     function handleGateFormSubmit(event) {
       event.preventDefault();
       processGateCheckin();
@@ -653,11 +715,11 @@
 
     async function processGateCheckin() {
       const inputEl = document.getElementById('gateScanInput');
-      const reg_code = inputEl.value;
+      const reg_code = (inputEl.value || '').trim();
       const resContainer = document.getElementById('gateCheckinResult');
       if (!reg_code) return;
 
-      resContainer.innerHTML = '<p>Verifying QR code...</p>';
+      resContainer.innerHTML = '<p style="color:var(--text-muted);">⏳ Verifying QR code...</p>';
 
       try {
         const res = await fetch('/api/admin/checkin', {
@@ -671,73 +733,70 @@
         const data = await res.json();
 
         if (data.success) {
+          const r = data.registrant;
           resContainer.innerHTML = `
             <div style="background: rgba(20,184,166,0.25); border: 2px solid var(--accent-teal); padding: 1.2rem; border-radius: var(--radius-md); text-align: left;">
-              <h3 style="color: var(--accent-teal); display:flex; align-items:center; gap:8px;">✅ ENTRY APPROVED — WELCOME</h3>
-              <p style="font-size:1.1rem; margin-top:6px;"><strong>Attendee:</strong> ${data.registrant.primary_name}</p>
-              <p><strong>Pass Tier:</strong> ${data.registrant.plan} (Code: ${data.registrant.reg_code})</p>
-              <p><strong>Mobile / City:</strong> ${data.registrant.mobile} | ${data.registrant.city}</p>
-              <p style="font-size:0.85rem; color: var(--accent-gold-light); margin-top:4px;">${data.message}</p>
+              <h3 style="color: var(--accent-teal); margin-bottom:10px;">✅ ENTRY APPROVED — WELCOME!</h3>
+              <p style="font-size:1.1rem;"><strong>Name:</strong> ${r.primary_name}</p>
+              <p><strong>Pass:</strong> ${r.plan} &nbsp;|&nbsp; <strong>Code:</strong> ${r.reg_code}</p>
+              <p><strong>Mobile:</strong> ${r.mobile} &nbsp;|&nbsp; <strong>City:</strong> ${r.city}</p>
+              ${r.gender ? `<p><strong>Gender:</strong> ${r.gender}${r.age ? ` &nbsp;|&nbsp; <strong>Age:</strong> ${r.age}` : ''}</p>` : ''}
+              <p style="font-size:0.85rem; color: var(--accent-gold-light); margin-top:6px;">${data.message}</p>
             </div>
           `;
           inputEl.value = '';
           inputEl.focus();
-          loadAdminDashboardData();
+          loadAdminStats();
         } else {
           resContainer.innerHTML = `
             <div style="background: rgba(255,77,109,0.25); border: 2px solid #ff4d6d; padding: 1.2rem; border-radius: var(--radius-md); text-align: left;">
-              <h3 style="color: #ff4d6d;">❌ ENTRY DENIED</h3>
-              <p style="font-size:1.05rem; margin-top:4px;">${data.message}</p>
+              <h3 style="color: #ff4d6d; margin-bottom:8px;">ENTRY DENIED</h3>
+              <p style="font-size:1.05rem;">${data.message}</p>
             </div>
           `;
           inputEl.select();
         }
       } catch (err) {
-        resContainer.innerHTML = '<p style="color:red;">Check-in service error.</p>';
+        resContainer.innerHTML = '<p style="color:red;">Check-in service error. Please try again.</p>';
       }
     }
 
+    // ── Pass Receipt Viewer (Admin Only) ─────────────────────────────
     async function viewPassReceipt(regCode) {
       try {
-        const res = await fetch(`/api/receipt/${regCode}`);
+        const res  = await fetch(`/api/receipt/${regCode}`);
         const data = await res.json();
         if (data.success && data.registration) {
           const reg = data.registration;
+          const esc = (v) => String(v || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
           const container = document.getElementById('adminReceiptModalContent');
           container.innerHTML = `
             <div class="receipt-pass-card" id="adminReceiptCard" style="margin: 0; text-align: left;">
               <div class="receipt-header">
-                <div class="receipt-brand">
-                  <span>🦚</span> Shri Krishna Janmashtami 2026
-                </div>
-                <div class="receipt-code-badge">${reg.reg_code}</div>
+                <div class="receipt-brand"><span>🦚</span> Shri Krishna Janmashtami 2026</div>
+                <div class="receipt-code-badge">${esc(reg.reg_code)}</div>
               </div>
-
               <div class="receipt-body-grid">
                 <div class="receipt-info">
-                  <p><strong>Attendee Name:</strong> ${reg.primary_name}</p>
-                  <p><strong>Pass Tier:</strong> ${reg.plan}</p>
-                  <p><strong>Mobile:</strong> ${reg.mobile} | <strong>City:</strong> ${reg.city}</p>
-                  <p><strong>Payment Ref (UTR):</strong> ${reg.utr_number}</p>
+                  <p><strong>Name:</strong> ${esc(reg.primary_name)}</p>
+                  <p><strong>Pass:</strong> ${esc(reg.plan)} &nbsp;|&nbsp; <strong>₹${reg.amount}</strong></p>
+                  <p><strong>Mobile:</strong> ${esc(reg.mobile)} | <strong>City:</strong> ${esc(reg.city)}</p>
+                  ${reg.utr_number ? `<p><strong>UTR Ref:</strong> ${esc(reg.utr_number)}</p>` : ''}
                   <p><strong>Status:</strong> <span style="color:#14b8a6; font-weight:700;">APPROVED / CONFIRMED</span></p>
-                  ${reg.checked_in ? `<p style="color:#059669; font-weight:700;">✓ Checked-In: ${reg.checked_in_at}</p>` : ''}
+                  ${reg.checked_in ? `<p style="color:#059669; font-weight:700;">✓ Checked-In: ${esc(reg.checked_in_at)}</p>` : ''}
                 </div>
-
                 <div class="receipt-qr-box">
-                  <img src="/api/qr/${reg.reg_code}" alt="Pass QR Code">
+                  <img src="/api/qr/${esc(reg.reg_code)}" alt="Pass QR Code">
                   <p style="font-size:0.75rem; font-weight:700; margin-top:4px; color:#062c30;">SCAN AT GATE</p>
                 </div>
               </div>
-
               <div class="receipt-footer-notes">
-                <p>📍 Venue: Dhyansthali, Morbi • Dates: 4–5 September 2026</p>
-                <p style="margin-top:2px;">Official Event Entry Receipt Pass</p>
+                <p>📍 Dhyansthali, Morbi • 4–5 September 2026</p>
               </div>
             </div>
-
             <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 1rem;">
-              <button class="btn-print-receipt" onclick="downloadAdminPassPNG('${reg.reg_code}')">💾 Download Pass Image (PNG)</button>
-              <a href="receipt.html?code=${reg.reg_code}" target="_blank" class="btn-print-receipt" style="background: rgba(255,255,255,0.15); color: #fff; border: 1px solid var(--card-border); text-decoration: none;">🖨️ Open Full E-Receipt Page</a>
+              <button class="btn-print-receipt" onclick="downloadAdminPassPNG('${esc(reg.reg_code)}')">💾 Download PNG</button>
+              <a href="receipt.html?code=${esc(reg.reg_code)}" target="_blank" class="btn-print-receipt" style="background: rgba(255,255,255,0.15); color: #fff; border: 1px solid var(--card-border); text-decoration: none;">🖨️ Full E-Receipt Page</a>
             </div>
           `;
           document.getElementById('adminReceiptModal').classList.add('active');
@@ -754,7 +813,6 @@
         window.open(`receipt.html?code=${regCode}`, '_blank');
         return;
       }
-
       html2canvas(card, { scale: 2, useCORS: true }).then(canvas => {
         const link = document.createElement('a');
         link.download = `Janmashtami_Pass_${regCode}.png`;
@@ -763,6 +821,7 @@
       });
     }
 
+    // ── Camera QR Scanner ────────────────────────────────────────────
     let html5QrScannerInstance = null;
 
     function toggleCameraScanner() {
@@ -770,23 +829,23 @@
       if (container.style.display === 'none') {
         container.style.display = 'block';
         if (!html5QrScannerInstance) {
-          html5QrScannerInstance = new Html5Qrcode("qr-reader");
+          html5QrScannerInstance = new Html5Qrcode('qr-reader');
         }
         html5QrScannerInstance.start(
-          { facingMode: "environment" },
+          { facingMode: 'environment' },
           { fps: 10, qrbox: { width: 250, height: 250 } },
-          (decodedText, decodedResult) => {
+          (decodedText) => {
             document.getElementById('gateScanInput').value = decodedText;
             processGateCheckin();
           },
-          (errorMessage) => {}
-        ).catch(err => {
-          alert("Camera access required for live QR scanner.");
+          () => {}
+        ).catch(() => {
+          alert('Camera access required for live QR scanning. Please allow camera permission.');
         });
       } else {
         container.style.display = 'none';
         if (html5QrScannerInstance) {
-          html5QrScannerInstance.stop().catch(()=>{});
+          html5QrScannerInstance.stop().catch(() => {});
         }
       }
     }
@@ -799,4 +858,3 @@
   </script>
 </body>
 </html>
-

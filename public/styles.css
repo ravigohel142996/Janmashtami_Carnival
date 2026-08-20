@@ -915,6 +915,7 @@ html, body {
 .submit-btn-gold {
   width: 100%;
   padding: 0.85rem;
+  min-height: 52px;
   background: linear-gradient(135deg, var(--accent-gold) 0%, var(--accent-gold-dark) 100%);
   color: #041a1c;
   border: none;
@@ -925,11 +926,54 @@ html, body {
   box-shadow: 0 4px 20px rgba(212, 175, 55, 0.4);
   transition: all 0.25s ease;
   margin-top: 1rem;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .submit-btn-gold:hover {
   transform: translateY(-2px);
   filter: brightness(1.1);
+}
+
+/* UPI Pay Now Button — prominent green payment action */
+.btn-upi-pay {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  margin: 12px 0 4px;
+  padding: 0.9rem 1.2rem;
+  min-height: 54px;
+  background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+  color: #fff;
+  border: 2px solid #22c55e;
+  border-radius: var(--radius-md);
+  font-size: 1.05rem;
+  font-weight: 800;
+  cursor: pointer;
+  letter-spacing: 0.3px;
+  box-shadow: 0 4px 20px rgba(22, 163, 74, 0.4);
+  transition: all 0.25s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.btn-upi-pay:hover, .btn-upi-pay:active {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(22, 163, 74, 0.5);
+  filter: brightness(1.08);
+}
+
+/* Make payment QR container a clear tap target on mobile */
+.payment-qr-container {
+  display: inline-block;
+  border-radius: var(--radius-md);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.payment-qr-container:active {
+  transform: scale(0.97);
+  box-shadow: 0 0 20px rgba(22, 163, 74, 0.4);
 }
 
 /* Printable E-Receipt Pass Card Styling */
