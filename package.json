@@ -5,8 +5,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node server.js",
-    "postinstall": "npm rebuild sqlite3 --build-from-source"
+    "dev": "node server.js"
   },
   "engines": {
     "node": "20.x"
