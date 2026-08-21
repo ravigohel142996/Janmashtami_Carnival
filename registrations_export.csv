@@ -1,0 +1,9 @@
+ID,Reg Code,Plan,Name,Age,Gender,Mobile,City,Amount (Rs),Payment Mobile,UTR Ref,Status,Checked In,Checked In At,Registered At
+1,"JK2026-6V2D","₹500 Two Day Resident","Test User",,"Male","9876543210","Morbi",500,"9876543210","123456789012","confirmed",YES,"12/8/2026, 4:43:20 pm","2026-08-12 11:09:57"
+2,"JK2026-QV93","₹100 One Day","Test User",30,"Male","9876543210","Morbi",100,"9876543210","123456789012","confirmed",NO,"","2026-08-12 11:20:30"
+3,"JK2026-3W9V","₹100 One Day","Typing Test",25,"Male","8888888888","JBS@811R",100,"8888888888","123456789012","confirmed",NO,"","2026-08-12 11:24:47"
+4,"JK2026-GGJH","₹100 One Day","Test User",25,"Male","9876543210","Morbi",100,"9876543210","123456789012","confirmed",NO,"","2026-08-12 12:00:18"
+5,"JK2026-7TXH","₹100 One Day","Ravi Gohel Jbsss",19,"Male","6355695018","Rajkot",100,"6355695018","1234567890","confirmed",YES,"12/8/2026, 6:01:59 pm","2026-08-12 12:18:18"
+6,"JK2026-ZVKD","₹500 Two Day Resident","xyz",29,"Male","dummy","xyzzz",500,"asdcfvghjkl","asdfghjkl","confirmed",NO,"","2026-08-18 13:13:25"
+7,"JK2026-9H46TF","₹100 One Day","Test User",,"Male","9876543210","Morbi",100,"9876543210","","pending",NO,"","2026-08-20 18:30:34"
+8,"JK2026-6Q6PRQ","₹100 One Day","Ravi Gohel",20,"Male","06355695018","Rajkot, Gujarat, India",100,"6355695018","","confirmed",NO,"","2026-08-20 18:34:41"
