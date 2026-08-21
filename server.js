@@ -27,6 +27,10 @@ const PLAN_AMOUNT_MAP = {
   '₹500 Two Day Resident': 500
 };
 
+// --- UPI Payment Configuration ---
+const UPI_ID = '7600046176@ibl';
+const UPI_PAYEE_NAME = 'Janmashtami Carnival 2026';
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
@@ -222,6 +226,30 @@ app.get('/api/qr/:code', async (req, res) => {
     const base64Data = qrDataUrl.replace(/^data:image\/png;base64,/, '');
     res.send(Buffer.from(base64Data, 'base64'));
   } catch (err) {
+    res.status(500).send('Error generating QR');
+  }
+});
+
+// 3b. Generate UPI Payment QR Code Image (dynamic — replaces static payment_qr.png)
+// Encodes a proper upi://pay URL so UPI apps recognise it as a valid payment request.
+// Query param: ?amount=100 (default 100)
+app.get('/api/paymentqr', async (req, res) => {
+  try {
+    const amount = Math.max(1, parseInt(req.query.amount) || 100);
+    // Standard UPI deep-link format accepted by all major apps
+    const upiUrl = `upi://pay?pa=${encodeURIComponent(UPI_ID)}&pn=${encodeURIComponent(UPI_PAYEE_NAME)}&am=${amount}&cu=INR&mode=02&purpose=00`;
+
+    const qrDataUrl = await QRCode.toDataURL(upiUrl, {
+      color: { dark: '#062c30', light: '#fdfbf7' },
+      width: 320,
+      margin: 2,
+      errorCorrectionLevel: 'M'
+    });
+    res.type('image/png');
+    const base64Data = qrDataUrl.replace(/^data:image\/png;base64,/, '');
+    res.send(Buffer.from(base64Data, 'base64'));
+  } catch (err) {
+    console.error('Error generating payment QR:', err);
     res.status(500).send('Error generating QR');
   }
 });

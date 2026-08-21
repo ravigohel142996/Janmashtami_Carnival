@@ -30,10 +30,15 @@ function selectPlan(amount) {
   if (p100_4) p100_4.classList.toggle('selected', amount === '100_4');
   if (p100_5) p100_5.classList.toggle('selected', amount === '100_5');
   if (p500) p500.classList.toggle('selected', amount === '500');
+  const numericAmount = amount.startsWith('100') ? 100 : 500;
   const payTxt = document.getElementById('payAmountTxt');
   if (payTxt) {
-    const numericAmount = amount.startsWith('100') ? 100 : 500;
     payTxt.innerText = `₹${numericAmount}`;
+  }
+  // Update dynamic payment QR image to reflect correct amount
+  const qrImg = document.getElementById('paymentQrImg');
+  if (qrImg) {
+    qrImg.src = `/api/paymentqr?amount=${numericAmount}`;
   }
 }
 
@@ -49,56 +54,24 @@ function copyUpiId() {
   navigator.clipboard.writeText(upiText).then(() => {
     showToast('✅ UPI ID copied: ' + upiText);
   }).catch(() => {
-    alert('UPI ID: ' + upiText);
+    // Fallback for older browsers
+    const tempInput = document.createElement('input');
+    tempInput.value = upiText;
+    document.body.appendChild(tempInput);
+    tempInput.select();
+    document.execCommand('copy');
+    document.body.removeChild(tempInput);
+    showToast('✅ UPI ID copied: ' + upiText);
   });
 }
 
-// ─── UPI App Deep Links (app-specific to avoid security decline) ─────────────
+// ─── Simplified Payment Flow (legacy compat) ────────────────
 
-/**
- * Build UPI query params for the current selected plan.
- */
-function _upiParams() {
-  const amount = selectedPlan.startsWith('100') ? 100 : 500;
-  const note   = encodeURIComponent('Janmashtami Carnival 2026 Pass');
-  const name   = encodeURIComponent(UPI_PAYEE_NAME);
-  return `pa=${UPI_ID}&pn=${name}&am=${amount}&cu=INR&tn=${note}`;
-}
-
-/** Navigate to a deep link URL */
-function _launch(url) {
-  const a = document.createElement('a');
-  a.href = url;
-  a.style.display = 'none';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  // After user returns, scroll to UTR field
-  setTimeout(() => {
-    const utrField = document.getElementById('payUtr');
-    if (utrField) utrField.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  }, 2200);
-}
-
-/** Open PhonePe directly — uses phonepe:// scheme (no security decline) */
-function openPhonePe() {
-  _launch(`phonepe://pay?${_upiParams()}`);
-}
-
-/** Open Google Pay directly — uses gpay:// scheme */
-function openGPay() {
-  _launch(`gpay://upi/pay?${_upiParams()}`);
-}
-
-/** Open Paytm directly — uses paytmmp:// scheme */
-function openPaytm() {
-  _launch(`paytmmp://pay?${_upiParams()}`);
-}
-
-/** Fallback: generic upi:// (for BHIM / other apps) */
-function openUpiApp() {
-  _launch(`upi://pay?${_upiParams()}`);
-}
+function startPayment() { copyUpiId(); }
+function openPhonePe() { copyUpiId(); }
+function openGPay() { copyUpiId(); }
+function openPaytm() { copyUpiId(); }
+function openUpiApp() { copyUpiId(); }
 
 // ─── Registration Submission ─────────────────────────────────
 

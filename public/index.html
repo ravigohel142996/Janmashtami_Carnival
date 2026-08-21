@@ -278,38 +278,33 @@
           </div>
         </div>
 
-        <!-- Step 3: Payment QR Code + UPI Deep Link -->
+        <!-- Step 3: Payment QR Code (Dynamic, server-generated) -->
         <div class="payment-box">
           <div class="pay-header">
-            <span class="pay-title">Step 3: Pay via PhonePe / GPay / Paytm</span>
+            <span class="pay-title">Step 3: Pay via UPI (PhonePe / GPay / Paytm)</span>
             <div class="pay-amount-badge">Total: <strong id="payAmountTxt">₹100</strong></div>
           </div>
 
-          <div class="payment-qr-container" onclick="openUpiApp()" style="cursor:pointer;" title="Tap to open UPI payment app">
-            <img src="payment_qr.png" alt="PhonePe / GPay QR Code — Tap to Pay" class="payment-qr-img">
-          </div>
-
-          <button type="button" class="btn-upi-pay" id="btnPhonePe" onclick="openPhonePe()" style="background:linear-gradient(135deg,#5f2ded,#8b5cf6); border-color:#7c3aed;">
-            <span>💜</span>
-            <span>Pay via PhonePe</span>
-          </button>
-
-          <div style="display:flex; gap:10px; margin-top:8px;">
-            <button type="button" class="btn-upi-pay" onclick="openGPay()" style="flex:1; background:linear-gradient(135deg,#1a73e8,#1557b0); border-color:#1a73e8; font-size:0.9rem; padding:11px 10px;">
-              <span>🔵</span>
-              <span>Google Pay</span>
-            </button>
-            <button type="button" class="btn-upi-pay" onclick="openPaytm()" style="flex:1; background:linear-gradient(135deg,#00baf2,#0089b6); border-color:#00baf2; font-size:0.9rem; padding:11px 10px;">
-              <span>🔷</span>
-              <span>Paytm</span>
-            </button>
+          <div class="payment-qr-container" style="cursor:pointer;" title="Scan this QR code with any UPI app to pay">
+            <img src="/api/paymentqr?amount=100" alt="UPI Payment QR Code" class="payment-qr-img" id="paymentQrImg">
           </div>
 
           <div class="upi-id-bar" style="margin-top:10px;">
             <span>UPI ID: <strong id="upiIdText">7600046176@ibl</strong></span>
             <button type="button" class="btn-copy-upi" onclick="copyUpiId()">📋 Copy</button>
           </div>
-          <p class="pay-note" style="margin-top:8px;">📱 Tap <strong>Pay Now</strong> to open your UPI app directly — or scan the QR above.<br>After paying, <strong>return to this page</strong> and enter your UTR reference below.</p>
+
+          <div style="background:rgba(255,193,7,0.08); border:1px solid rgba(255,193,7,0.3); border-radius:10px; padding:14px; margin-top:12px; text-align:left;">
+            <p style="font-weight:700; color:#fbbf24; margin-bottom:8px; font-size:0.95rem;">📱 How to Pay:</p>
+            <ol style="margin:0; padding-left:18px; color:var(--text-muted); font-size:0.85rem; line-height:1.7;">
+              <li><strong>Option A — Scan QR:</strong> Open any UPI app → Scan QR Code → Pay</li>
+              <li><strong>Option B — UPI ID:</strong> Open any UPI app → Send Money → Enter UPI ID: <strong style="color:#14b8a6;">7600046176@ibl</strong> → Enter amount → Pay</li>
+              <li><strong>Option C — Copy UPI ID:</strong> Tap the <strong>📋 Copy</strong> button above → Paste in your UPI app</li>
+            </ol>
+            <p style="font-size:0.8rem; color:var(--text-muted); margin-top:8px; font-style:italic;">
+              ⚠️ If QR scan shows "declined for security" — use <strong>Option B</strong> (manually enter UPI ID in your app). This is a bank security measure, not a website error.
+            </p>
+          </div>
         </div>
 
         <!-- Step 4: UTR Reference Submission (Optional) -->
