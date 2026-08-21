@@ -53,39 +53,51 @@ function copyUpiId() {
   });
 }
 
+// ─── UPI App Deep Links (app-specific to avoid security decline) ─────────────
+
 /**
- * Tries to open installed UPI app via deep link.
- * Falls back gracefully — QR is always visible as backup.
- * Does NOT claim this verifies payment.
+ * Build UPI query params for the current selected plan.
  */
-function openUpiApp() {
+function _upiParams() {
   const amount = selectedPlan.startsWith('100') ? 100 : 500;
-  const note = encodeURIComponent('Janmashtami Carnival 2026 Pass');
-  const payeeName = encodeURIComponent(UPI_PAYEE_NAME);
+  const note   = encodeURIComponent('Janmashtami Carnival 2026 Pass');
+  const name   = encodeURIComponent(UPI_PAYEE_NAME);
+  return `pa=${UPI_ID}&pn=${name}&am=${amount}&cu=INR&tn=${note}`;
+}
 
-  const deepLink = `upi://pay?pa=${UPI_ID}&pn=${payeeName}&am=${amount}&cu=INR&tn=${note}`;
-
-  // Create a temporary anchor and click — works on Android/iOS UPI apps
+/** Navigate to a deep link URL */
+function _launch(url) {
   const a = document.createElement('a');
-  a.href = deepLink;
+  a.href = url;
   a.style.display = 'none';
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
-
-  // Show a helper message after 1.5s (user has likely switched to UPI app)
+  // After user returns, scroll to UTR field
   setTimeout(() => {
-    const btn = document.getElementById('btnUpiPay');
-    if (btn) {
-      btn.innerHTML = '<span>↩️</span><span>Returned from UPI app? Enter UTR below</span>';
-      btn.style.background = 'rgba(20,184,166,0.25)';
-      btn.style.borderColor = 'var(--accent-teal)';
-      btn.style.color = 'var(--accent-teal)';
-      // Focus UTR field to guide user
-      const utrField = document.getElementById('payUtr');
-      if (utrField) utrField.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
-  }, 1500);
+    const utrField = document.getElementById('payUtr');
+    if (utrField) utrField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, 2200);
+}
+
+/** Open PhonePe directly — uses phonepe:// scheme (no security decline) */
+function openPhonePe() {
+  _launch(`phonepe://pay?${_upiParams()}`);
+}
+
+/** Open Google Pay directly — uses gpay:// scheme */
+function openGPay() {
+  _launch(`gpay://upi/pay?${_upiParams()}`);
+}
+
+/** Open Paytm directly — uses paytmmp:// scheme */
+function openPaytm() {
+  _launch(`paytmmp://pay?${_upiParams()}`);
+}
+
+/** Fallback: generic upi:// (for BHIM / other apps) */
+function openUpiApp() {
+  _launch(`upi://pay?${_upiParams()}`);
 }
 
 // ─── Registration Submission ─────────────────────────────────

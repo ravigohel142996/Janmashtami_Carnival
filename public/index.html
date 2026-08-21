@@ -289,10 +289,21 @@
             <img src="payment_qr.png" alt="PhonePe / GPay QR Code — Tap to Pay" class="payment-qr-img">
           </div>
 
-          <button type="button" class="btn-upi-pay" id="btnUpiPay" onclick="openUpiApp()">
-            <span>💳</span>
-            <span>Pay Now / UPI से भुगतान करें</span>
+          <button type="button" class="btn-upi-pay" id="btnPhonePe" onclick="openPhonePe()" style="background:linear-gradient(135deg,#5f2ded,#8b5cf6); border-color:#7c3aed;">
+            <span>💜</span>
+            <span>Pay via PhonePe</span>
           </button>
+
+          <div style="display:flex; gap:10px; margin-top:8px;">
+            <button type="button" class="btn-upi-pay" onclick="openGPay()" style="flex:1; background:linear-gradient(135deg,#1a73e8,#1557b0); border-color:#1a73e8; font-size:0.9rem; padding:11px 10px;">
+              <span>🔵</span>
+              <span>Google Pay</span>
+            </button>
+            <button type="button" class="btn-upi-pay" onclick="openPaytm()" style="flex:1; background:linear-gradient(135deg,#00baf2,#0089b6); border-color:#00baf2; font-size:0.9rem; padding:11px 10px;">
+              <span>🔷</span>
+              <span>Paytm</span>
+            </button>
+          </div>
 
           <div class="upi-id-bar" style="margin-top:10px;">
             <span>UPI ID: <strong id="upiIdText">7600046176@ibl</strong></span>
