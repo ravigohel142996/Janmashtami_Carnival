@@ -111,7 +111,7 @@
 
       <div class="tiers-grid">
         <!-- Tier 1: One Day Pass -->
-        <div class="tier-card" onclick="selectPlanAndOpen('100')">
+        <div class="tier-card" onclick="selectPlanAndOpen('100_4')">
           <div class="tier-badge">POPULAR</div>
           <div class="tier-header">
             <span class="tier-icon">🎫</span>
@@ -121,7 +121,7 @@
               <span class="price-amount">100</span>
               <span class="price-period">/ person</span>
             </div>
-            <p class="tier-desc">Valid for single-day entry on either 4th or 5th September 2026.</p>
+            <p class="tier-desc">Valid for single-day entry (select date below).</p>
           </div>
           <ul class="tier-features">
             <li><span class="check">✓</span> Gate Entry to Dhyansthali Grounds</li>
@@ -129,9 +129,14 @@
             <li><span class="check">✓</span> Dahi Handi & Midnight Aarti Access</li>
             <li><span class="check">✓</span> Digital QR Gate Pass Receipt</li>
           </ul>
-          <button class="btn-select-tier gold" onclick="event.stopPropagation(); selectPlanAndOpen('100');">
-            Select One Day Pass
-          </button>
+          <div style="display: flex; gap: 8px; margin-top: 10px; width: 100%;">
+            <button class="btn-select-tier gold" style="flex: 1; padding: 0.55rem 0.4rem; font-size: 0.85rem;" onclick="event.stopPropagation(); selectPlanAndOpen('100_4');">
+              Book 4th Sept
+            </button>
+            <button class="btn-select-tier gold" style="flex: 1; padding: 0.55rem 0.4rem; font-size: 0.85rem;" onclick="event.stopPropagation(); selectPlanAndOpen('100_5');">
+              Book 5th Sept
+            </button>
+          </div>
         </div>
 
         <!-- Tier 2: Two Day Resident Pass -->
@@ -223,8 +228,12 @@
         <div class="form-step-block">
           <label class="step-label">Step 1: Selected Experience Pass</label>
           <div class="plan-toggle-grid">
-            <div class="plan-toggle-card selected" id="plan100" onclick="selectPlan('100')">
-              <div class="toggle-name">One Day Pass</div>
+            <div class="plan-toggle-card selected" id="plan100_4" onclick="selectPlan('100_4')">
+              <div class="toggle-name">One Day (4 Sept)</div>
+              <div class="toggle-price">₹100</div>
+            </div>
+            <div class="plan-toggle-card" id="plan100_5" onclick="selectPlan('100_5')">
+              <div class="toggle-name">One Day (5 Sept)</div>
               <div class="toggle-price">₹100</div>
             </div>
             <div class="plan-toggle-card" id="plan500" onclick="selectPlan('500')">

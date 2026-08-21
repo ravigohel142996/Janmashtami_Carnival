@@ -22,6 +22,8 @@ const GATE_TOKEN  = 'GATE_TKN_JBS811R_2026';
 // --- Plan → Amount map (single source of truth — never trust client amount) ---
 const PLAN_AMOUNT_MAP = {
   '₹100 One Day': 100,
+  '₹100 One Day (4 Sept)': 100,
+  '₹100 One Day (5 Sept)': 100,
   '₹500 Two Day Resident': 500
 };
 
@@ -354,13 +356,40 @@ app.get('/api/admin/stats', requireGateOrAdminAuth, (req, res) => {
     let rejected = 0;
     let totalRevenue = 0;
     let checkedInTotal = 0;
-    let checkedInOneDay = 0;
-    let checkedInTwoDay = 0;
+
+    let totalDay4 = 0;
+    let totalDay5 = 0;
+    let totalResident = 0;
+    let totalUnspecified = 0;
+
+    let confirmedDay4 = 0;
+    let confirmedDay5 = 0;
+    let confirmedResident = 0;
+    let confirmedUnspecified = 0;
+
+    let checkedInDay4 = 0;
+    let checkedInDay5 = 0;
+    let checkedInResident = 0;
+    let checkedInUnspecified = 0;
 
     rows.forEach(r => {
+      const isDay4 = r.plan && r.plan.includes('4 Sept');
+      const isDay5 = r.plan && r.plan.includes('5 Sept');
+      const isResident = r.plan && (r.plan.includes('500') || r.plan.includes('Two Day'));
+      const isUnspecified = !isDay4 && !isDay5 && !isResident;
+
+      if (isDay4) totalDay4++;
+      else if (isDay5) totalDay5++;
+      else if (isResident) totalResident++;
+      else if (isUnspecified) totalUnspecified++;
+
       if (r.status === 'confirmed') {
         confirmed++;
         totalRevenue += (r.amount || 0);
+        if (isDay4) confirmedDay4++;
+        else if (isDay5) confirmedDay5++;
+        else if (isResident) confirmedResident++;
+        else if (isUnspecified) confirmedUnspecified++;
       } else if (r.status === 'pending') {
         pending++;
       } else if (r.status === 'rejected') {
@@ -369,15 +398,32 @@ app.get('/api/admin/stats', requireGateOrAdminAuth, (req, res) => {
 
       if (r.checked_in) {
         checkedInTotal++;
-        if (r.plan && r.plan.includes('100')) {
-          checkedInOneDay++;
-        } else {
-          checkedInTwoDay++;
-        }
+        if (isDay4) checkedInDay4++;
+        else if (isDay5) checkedInDay5++;
+        else if (isResident) checkedInResident++;
+        else if (isUnspecified) checkedInUnspecified++;
       }
     });
 
-    const baseStats = { total, confirmed, checkedInTotal, checkedInOneDay, checkedInTwoDay };
+    const baseStats = {
+      total,
+      confirmed,
+      checkedInTotal,
+      checkedInOneDay: checkedInDay4 + checkedInDay5 + checkedInUnspecified,
+      checkedInTwoDay: checkedInResident,
+      totalDay4,
+      totalDay5,
+      totalResident,
+      totalUnspecified,
+      confirmedDay4,
+      confirmedDay5,
+      confirmedResident,
+      confirmedUnspecified,
+      checkedInDay4,
+      checkedInDay5,
+      checkedInResident,
+      checkedInUnspecified
+    };
 
     // Gate role only sees headcount — not financials or pending queue
     if (role === 'gate') {

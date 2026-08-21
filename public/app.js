@@ -1,6 +1,6 @@
 /* Registration Portal Controller Logic */
 
-let selectedPlan = '100';
+let selectedPlan = '100_4';
 
 // UPI Configuration
 const UPI_ID = '7600046176@ibl';
@@ -24,12 +24,17 @@ function closeModal(modalId) {
 
 function selectPlan(amount) {
   selectedPlan = amount;
-  const p100 = document.getElementById('plan100');
+  const p100_4 = document.getElementById('plan100_4');
+  const p100_5 = document.getElementById('plan100_5');
   const p500 = document.getElementById('plan500');
-  if (p100) p100.classList.toggle('selected', amount === '100');
+  if (p100_4) p100_4.classList.toggle('selected', amount === '100_4');
+  if (p100_5) p100_5.classList.toggle('selected', amount === '100_5');
   if (p500) p500.classList.toggle('selected', amount === '500');
   const payTxt = document.getElementById('payAmountTxt');
-  if (payTxt) payTxt.innerText = `₹${amount}`;
+  if (payTxt) {
+    const numericAmount = amount.startsWith('100') ? 100 : 500;
+    payTxt.innerText = `₹${numericAmount}`;
+  }
 }
 
 function selectPlanAndOpen(amount) {
@@ -54,7 +59,7 @@ function copyUpiId() {
  * Does NOT claim this verifies payment.
  */
 function openUpiApp() {
-  const amount = selectedPlan;
+  const amount = selectedPlan.startsWith('100') ? 100 : 500;
   const note = encodeURIComponent('Janmashtami Carnival 2026 Pass');
   const payeeName = encodeURIComponent(UPI_PAYEE_NAME);
 
@@ -102,7 +107,8 @@ async function handleRegistrationSubmit(event) {
   }
 
   const payload = {
-    plan: selectedPlan === '100' ? '₹100 One Day' : '₹500 Two Day Resident',
+    plan: selectedPlan === '100_4' ? '₹100 One Day (4 Sept)' :
+          selectedPlan === '100_5' ? '₹100 One Day (5 Sept)' : '₹500 Two Day Resident',
     primary_name: document.getElementById('regName').value.trim(),
     mobile: document.getElementById('regMobile').value.trim(),
     age: document.getElementById('regAge').value,

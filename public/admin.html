@@ -412,12 +412,12 @@
       <div class="stat-card">
         <div class="stat-label">Total Registered</div>
         <div class="stat-value" id="statTotalReg">0</div>
-        <div class="stat-sub">Registrants in system</div>
+        <div class="stat-sub" id="statTotalRegSub">Registrants in system</div>
       </div>
       <div class="stat-card">
         <div class="stat-label">Confirmed Passes</div>
         <div class="stat-value" id="statConfirmed" style="color: var(--accent-teal);">0</div>
-        <div class="stat-sub">Payment verified</div>
+        <div class="stat-sub" id="statConfirmedSub">Payment verified</div>
       </div>
       <div class="stat-card" id="statPendingCard">
         <div class="stat-label">Pending Verification</div>
@@ -616,15 +616,42 @@
         if (data.success && data.stats) {
           const s = data.stats;
           document.getElementById('statTotalReg').innerText  = s.total;
+          
+          const totalSub = document.getElementById('statTotalRegSub');
+          if (totalSub) {
+            let breakdown = `${s.totalDay4 || 0} Day 4 | ${s.totalDay5 || 0} Day 5 | ${s.totalResident || 0} Resident`;
+            if (s.totalUnspecified) breakdown += ` | ${s.totalUnspecified} Legacy`;
+            totalSub.innerText = breakdown;
+          }
+
           document.getElementById('statConfirmed').innerText = s.confirmed;
+          const confirmedSub = document.getElementById('statConfirmedSub');
+          if (confirmedSub) {
+            let breakdown = `${s.confirmedDay4 || 0} Day 4 | ${s.confirmedDay5 || 0} Day 5 | ${s.confirmedResident || 0} Resident`;
+            if (s.confirmedUnspecified) breakdown += ` | ${s.confirmedUnspecified} Legacy`;
+            confirmedSub.innerText = breakdown;
+          }
+
           if (s.pending !== undefined) {
             const pendingEl = document.getElementById('statPending');
             if (pendingEl) pendingEl.innerText = s.pending;
           }
           document.getElementById('statCheckedIn').innerText = `${s.checkedInTotal} / ${s.confirmed}`;
           const pct = s.confirmed > 0 ? Math.round((s.checkedInTotal / s.confirmed) * 100) : 0;
-          document.getElementById('statCheckedInSub').innerText =
-            `${pct}% inside • ${s.checkedInOneDay} Day + ${s.checkedInTwoDay} Resident`;
+          
+          let checkedInBreakdown = `${pct}% inside • `;
+          let checkedInDays = [];
+          if (s.checkedInDay4) checkedInDays.push(`${s.checkedInDay4} Day 4`);
+          if (s.checkedInDay5) checkedInDays.push(`${s.checkedInDay5} Day 5`);
+          if (s.checkedInResident) checkedInDays.push(`${s.checkedInResident} Resident`);
+          if (s.checkedInUnspecified) checkedInDays.push(`${s.checkedInUnspecified} Legacy`);
+          if (checkedInDays.length === 0) {
+            checkedInBreakdown += `0 inside`;
+          } else {
+            checkedInBreakdown += checkedInDays.join(' + ');
+          }
+          document.getElementById('statCheckedInSub').innerText = checkedInBreakdown;
+
           if (s.totalRevenue !== undefined) {
             const revEl = document.getElementById('statRevenue');
             if (revEl) revEl.innerText = `₹${s.totalRevenue}`;
